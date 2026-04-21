@@ -18,30 +18,30 @@ class RAGApp:
 
         os.makedirs(PDF_FOLDER, exist_ok=True)
 
-        # CHAT
+        # Chat
         self.chat = scrolledtext.ScrolledText(root, wrap=tk.WORD)
         self.chat.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # PDF SELECTOR
+        # PDF Selector
         self.pdf_var = tk.StringVar()
         self.dropdown = ttk.Combobox(root, textvariable=self.pdf_var)
         self.dropdown.pack(fill="x", padx=10, pady=5)
 
         self.refresh_pdfs()
 
-        # ENTRY
+        # Entry
         self.entry = tk.Entry(root)
         self.entry.pack(fill="x", padx=10, pady=5)
         self.entry.bind("<Return>", lambda e: self.ask())
 
-        # BUTTONS
+        # Buttons
         frame = tk.Frame(root)
         frame.pack(pady=5)
 
         tk.Button(frame, text="Ask", command=self.ask).pack(side="left", padx=5)
         tk.Button(frame, text="Add PDF", command=self.browse_pdf).pack(side="left", padx=5)
 
-        # DRAG DROP
+        # Drag N' Drop
         root.drop_target_register(DND_FILES)
         root.dnd_bind("<<Drop>>", self.drop)
 

@@ -7,30 +7,22 @@ from pypdf import PdfReader
 
 from config import *
 
-# --------------------
-# LOAD ENV
-# --------------------
+# --------------------------------------------------------- Loading env
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# --------------------
-# EMBEDDING MODEL
-# --------------------
+# --------------------------------------------------------- Embedding Model
 embedder = SentenceTransformer(EMBED_MODEL)
 
-# --------------------
-# VECTOR DB
-# --------------------
+# --------------------------------------------------------- Vector DB
 db = chromadb.PersistentClient(path=DB_PATH)
 collection = db.get_or_create_collection("hindi_rag")
 
 
-# --------------------
-# LOAD PDF TEXT
-# --------------------
+# --------------------------------------------------------- Load PDF Text
 def load_pdf(path):
 
     reader = PdfReader(path)
@@ -44,9 +36,7 @@ def load_pdf(path):
     return text
 
 
-# --------------------
-# ADD PDF
-# --------------------
+# --------------------------------------------------------- Add PDF
 def add_pdf(pdf_path):
 
     filename = os.path.basename(pdf_path)
@@ -78,9 +68,7 @@ def add_pdf(pdf_path):
     print("Done embedding.")
 
 
-# --------------------
-# LIST PDFS
-# --------------------
+# --------------------------------------------------------- List PDFs
 def get_all_pdfs():
 
     data = collection.get(include=["metadatas"])
@@ -94,9 +82,8 @@ def get_all_pdfs():
     return sorted(list(files))
 
 
-# --------------------
-# RETRIEVE
-# --------------------
+
+# --------------------------------------------------------- Retreive
 def retrieve(query, selected_pdf=None):
 
     q_emb = embedder.encode([query]).tolist()
@@ -118,9 +105,8 @@ def retrieve(query, selected_pdf=None):
     return "\n".join(docs)
 
 
-# --------------------
-# ASK LLM
-# --------------------
+
+# --------------------------------------------------------- Ask LLM
 def ask(query, selected_pdf=None):
 
     context = retrieve(query, selected_pdf)

@@ -14,9 +14,7 @@ client = chromadb.PersistentClient(path=DB_PATH)
 collection = client.get_or_create_collection("hindi_rag")
 
 
-# ----------------------------
-# PDF TEXT EXTRACTION
-# ----------------------------
+# --------------------------------------------------------- PDF Text Extraction
 def extract_text(path):
 
     reader = PdfReader(path)
@@ -30,9 +28,8 @@ def extract_text(path):
     return text
 
 
-# ----------------------------
-# CHUNKING
-# ----------------------------
+
+# --------------------------------------------------------- Chunking
 def chunk_text(text, size=800, overlap=150):
 
     chunks = []
@@ -46,9 +43,7 @@ def chunk_text(text, size=800, overlap=150):
     return chunks
 
 
-# ----------------------------
-# EMBED SINGLE PDF
-# ----------------------------
+# --------------------------------------------------------- Embed Single PDF
 def embed_pdf(pdf_path):
 
     filename = os.path.basename(pdf_path)
