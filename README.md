@@ -203,11 +203,10 @@ Get list of indexed PDFs.
 
 ## Known Limitations
 
-1. **No OCR Pipeline:** pytesseract is installed but not integrated
-2. **Duplicate Detection:** Basic filename-based check may miss duplicates
-3. **No PDF Deletion:** Cannot remove indexed documents via GUI
-4. **Single Collection:** All documents stored in one ChromaDB collection
-5. **Hardcoded Paths:** Relative paths may cause issues in different environments
+1. **Duplicate Detection:** Basic filename-based check may miss duplicates
+2. **No PDF Deletion:** Cannot remove indexed documents via GUI
+3. **Single Collection:** All documents stored in one ChromaDB collection
+4. **Hardcoded Paths:** Relative paths may cause issues in different environments
 
 
 ---
