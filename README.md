@@ -209,18 +209,6 @@ Get list of indexed PDFs.
 4. **Single Collection:** All documents stored in one ChromaDB collection
 5. **Hardcoded Paths:** Relative paths may cause issues in different environments
 
----
-
-## Potential Improvements
-
-- [ ] Add OCR support for scanned PDFs
-- [ ] Implement PDF deletion/removal feature
-- [ ] Add document metadata filtering
-- [ ] Support multiple collections/categories
-- [ ] Add streaming responses
-- [ ] Implement conversation history
-- [ ] Add settings panel for chunk size/model selection
-- [ ] Export to executable with PyInstaller
 
 ---
 
