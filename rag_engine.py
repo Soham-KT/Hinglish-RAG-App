@@ -1,50 +1,101 @@
 import os
+import uuid
 from dotenv import load_dotenv
+
 import chromadb
 from google import genai
 from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
 
+import pytesseract
+from pdf2image import convert_from_path
+
 from config import *
 
-# --------------------------------------------------------- Loading env
+# ------------------------------------------------------ Settings
+POPPLER_PATH = r"C:\poppler\Library\bin"
+
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API")
-
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# --------------------------------------------------------- Embedding Model
+# ------------------------------------------------------ Embedding Model
 embedder = SentenceTransformer(EMBED_MODEL)
 
-# --------------------------------------------------------- Vector DB
+# ------------------------------------------------------ Vector DB
 db = chromadb.PersistentClient(path=DB_PATH)
 collection = db.get_or_create_collection("hindi_rag")
 
 
-# --------------------------------------------------------- Load PDF Text
-def load_pdf(path):
+# ------------------------------------------------------ OCR Fallback
+def ocr_pdf(pdf_path):
 
-    reader = PdfReader(path)
+    images = convert_from_path(
+        pdf_path,
+        poppler_path=POPPLER_PATH
+    )
+
     text = ""
 
-    for page in reader.pages:
-        t = page.extract_text()
-        if t:
-            text += t + "\n"
+    for img in images:
+        page_text = pytesseract.image_to_string(
+            img,
+            lang="hin+eng"
+        )
+        text += page_text + "\n"
 
     return text
 
 
-# --------------------------------------------------------- Add PDF
+# ------------------------------------------------------ Load PDF text
+def load_pdf(pdf_path):
+
+    text = ""
+
+    try:
+        reader = PdfReader(pdf_path)
+
+        for page in reader.pages:
+            t = page.extract_text()
+            if t:
+                text += t + "\n"
+
+    except Exception as e:
+        print("PDF extraction failed:", e)
+
+    # ---- OCR fallback ----
+    if len(text.strip()) < 50:
+        print("Using OCR:", os.path.basename(pdf_path))
+        text = ocr_pdf(pdf_path)
+
+    return text
+
+
+# ------------------------------------------------------ Add PDF to vector DB
 def add_pdf(pdf_path):
 
     filename = os.path.basename(pdf_path)
+
+    # ---- prevent duplicate embedding ----
+    data = collection.get(include=["metadatas"])
+
+    for m in data["metadatas"]:
+        if m and m.get("source") == filename:
+            print(f"{filename} already embedded.")
+            return
 
     print("Embedding:", filename)
 
     text = load_pdf(pdf_path)
 
+    if not text.strip():
+        print("No text extracted.")
+        return
+
+    # chunking
     chunks = [
         text[i:i+800]
         for i in range(0, len(text), 600)
@@ -52,9 +103,7 @@ def add_pdf(pdf_path):
 
     embeddings = embedder.encode(chunks).tolist()
 
-    import uuid
     ids = [f"{filename}_{uuid.uuid4()}" for _ in chunks]
-
     metas = [{"source": filename} for _ in chunks]
 
     collection.add(
@@ -63,12 +112,12 @@ def add_pdf(pdf_path):
         ids=ids,
         metadatas=metas
     )
-    print("Total vectors:", collection.count())
 
+    print("Total vectors:", collection.count())
     print("Done embedding.")
 
 
-# --------------------------------------------------------- List PDFs
+# ------------------------------------------------------ List PDFs
 def get_all_pdfs():
 
     data = collection.get(include=["metadatas"])
@@ -82,8 +131,7 @@ def get_all_pdfs():
     return sorted(list(files))
 
 
-
-# --------------------------------------------------------- Retreive
+# ------------------------------------------------------ Retreival
 def retrieve(query, selected_pdf=None):
 
     q_emb = embedder.encode([query]).tolist()
@@ -100,20 +148,26 @@ def retrieve(query, selected_pdf=None):
             n_results=5
         )
 
-    docs = results["documents"][0]
+    docs = results.get("documents", [[]])[0]
 
     return "\n".join(docs)
 
 
-
-# --------------------------------------------------------- Ask LLM
+# ------------------------------------------------------ Ask LLM
 def ask(query, selected_pdf=None):
 
     context = retrieve(query, selected_pdf)
 
+    if not context:
+        return "No relevant information found."
+
     prompt = f"""
-You are a multilingual assistant.
-Answer in same language.
+You are a multilingual government document assistant.
+
+Rules:
+- Answer ONLY from context
+- Answer in user's language
+- If answer not present, say: Information not found.
 
 QUESTION:
 {query}
@@ -129,4 +183,4 @@ ANSWER:
         contents=prompt
     )
 
-    return response.text
+    return response.text.strip()

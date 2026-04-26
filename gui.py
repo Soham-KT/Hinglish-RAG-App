@@ -3,14 +3,22 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk
 import threading
 import os
+import shutil
 
 import rag_engine
+import crawler
 from config import PDF_FOLDER
 
 
 class RAGApp:
 
     def __init__(self, root):
+
+        # Ensure TkinterDnD root (important for EXE)
+        if not isinstance(root, TkinterDnD.Tk):
+            raise RuntimeError(
+                "Root must be TkinterDnD.Tk(), not tkinter.Tk()"
+            )
 
         self.root = root
         root.title("Hindi RAG Desktop")
@@ -46,6 +54,7 @@ class RAGApp:
         root.dnd_bind("<<Drop>>", self.drop)
 
         self.log("Drag & Drop PDF or click Add PDF")
+        self.startup_crawler()
 
     # ------------------
     def log(self, msg):
@@ -71,7 +80,7 @@ class RAGApp:
 
         rag_engine.add_pdf(path)
 
-        self.log("✅ PDF Added")
+        self.log("PDF Added")
 
         self.refresh_pdfs()
 
@@ -84,7 +93,7 @@ class RAGApp:
 
         if file:
             save_path = os.path.join(PDF_FOLDER, os.path.basename(file))
-            os.system(f'cp "{file}" "{save_path}"')
+            shutil.copy(file, save_path)
 
             threading.Thread(
                 target=self.process_pdf,
@@ -100,7 +109,7 @@ class RAGApp:
         if file.endswith(".pdf"):
 
             save_path = os.path.join(PDF_FOLDER, os.path.basename(file))
-            os.system(f'cp "{file}" "{save_path}"')
+            shutil.copy(file, save_path)
 
             threading.Thread(
                 target=self.process_pdf,
@@ -126,5 +135,25 @@ class RAGApp:
         def run():
             ans = rag_engine.ask(query, selected)
             self.log(f"\nAI: {ans}\n")
+
+        threading.Thread(target=run, daemon=True).start()
+
+    # ------------------
+    def startup_crawler(self):
+
+        def run():
+
+            self.log("\nChecking MP Social Justice website...")
+
+            try:
+                msg = crawler.run_crawler()
+
+                self.log(msg)
+
+                # refresh dropdown after new PDFs
+                self.refresh_pdfs()
+
+            except Exception as e:
+                self.log(f"Crawler error: {e}")
 
         threading.Thread(target=run, daemon=True).start()

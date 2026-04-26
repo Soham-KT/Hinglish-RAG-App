@@ -1,7 +1,8 @@
 chromadb
 sentence-transformers
-google-generativeai
+google-genai
 pypdf
 pytesseract
 pillow
-pyinstaller
+python-dotenv
+tkinterdnd2
